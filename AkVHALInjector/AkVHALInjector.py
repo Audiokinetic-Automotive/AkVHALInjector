@@ -80,7 +80,7 @@ class AkVHALInjector:
         if dataLength % 8 != 0:
             padding = 8 - (dataLength % 8)
             data += b"\0" * padding
-        else if isinstance(data, str):
+        elif isinstance(data, str):
             data = data + b"\0"
         data = [int.from_bytes(data[i:i+8], byteorder='little', signed=True) for i in range(0, len(data), 8)]
         data = [dataLength] + data

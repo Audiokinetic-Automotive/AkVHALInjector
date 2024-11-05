@@ -19,7 +19,9 @@ class AkVHALInjector:
         self.shell = self.device.shell_popen(
             ["sh"], stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.STDOUT)
         # print the serial number of the device
+        print(self.device.serial)
         self.propertyTypes = self._getAllPropertiesTypes()
+        self._startAkWwiseCli()
 
     def _sendShellCommand(self, command, waitforoutput = False):
         # send a command to the shell and appends another command so we know when the first command is finished
@@ -27,6 +29,7 @@ class AkVHALInjector:
         self.shell.stdin.write(command.encode('utf-8'))
         self.shell.stdin.flush()
         output = ""
+        # print(command)
         if waitforoutput:
             command = "echo \"AKVHALINJECTORCOMMANDFINISHED\"\n"
             self.shell.stdin.write(command.encode('utf-8'))
@@ -38,8 +41,16 @@ class AkVHALInjector:
                 if line == "AKVHALINJECTORCOMMANDFINISHED":
                     break
                 output += line + "\n"
+        else:
+            self.shell.stdout.flush()
 
         return output
+
+    def _startAkWwiseCli(self):
+        self._sendShellCommand("akwwisecli --basepath foobar")
+
+    def _stopAkWwiseCli(self):
+        self._sendShellCommand("exit")
 
     def _sanitizeInteger(self, data):
         # if the data is already an integer, return it
@@ -102,10 +113,12 @@ class AkVHALInjector:
         if self.propertyTypes[propertyId] == VEHICLEPROPERTYTYPE_INT32_VEC or self.propertyTypes[propertyId] == VEHICLEPROPERTYTYPE_INT64_VEC or self.propertyTypes[propertyId] == VEHICLEPROPERTYTYPE_FLOAT_VEC:
             # if the data is a list, convert it to a string
             if isinstance(data, list):
-                data = ",".join([str(i) for i in data])
+                dataLength = len(data)
+                data = " ".join([str(i) for i in data])
+                data = f"{dataLength} {data}"
             else:
                 print("Invalid data type")
                 return
 
-        command = f"cmd car_service set-property-value {propertyId} {areaId} {data}"
+        command = f"setvhalprop 0x{propertyId:02x} 0x{areaId:02x} {data}\n"
         self._sendShellCommand(command)
